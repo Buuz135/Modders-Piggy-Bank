@@ -16,7 +16,10 @@ public class Constants {
 
 	public static final String MINIFIED_URL = "https://raw.githubusercontent.com/Buuz135/Modders-Piggy-Bank-Repository/refs/heads/main/mod-authors.min.json";
 
-	public static final List<String> ALLOWED_SCREEN_CLASSES = new ArrayList<>();
+    // Using just the string name of the class doesn't work because Fabric is running using intermediary in prod!
+    // Class references do work though as they get remapped correctly by loom.
+    // This is totally irrelevant for neoforge as they're running using mojmap in both dev + prod.
+	public static final List<Class<?>> ALLOWED_SCREEN_CLASSES = new ArrayList<>();
 	public static HashMap<String, String> ALLOWED_LINKS = new HashMap<>();
 
 	public static final Random RANDOM = new Random();

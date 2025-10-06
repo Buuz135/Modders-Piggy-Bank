@@ -34,9 +34,14 @@ public class CommonClass {
         INFORMATION = AUTHOR_INFORMATION.values().stream().toList();
         loadMinified();
 
-        Constants.ALLOWED_SCREEN_CLASSES.add("TitleScreen");
-        Constants.ALLOWED_SCREEN_CLASSES.add("OptionsScreen");
-        Constants.ALLOWED_SCREEN_CLASSES.add("ExtendedMenuScreen");
+        Constants.ALLOWED_SCREEN_CLASSES.add(TitleScreen.class);
+        Constants.ALLOWED_SCREEN_CLASSES.add(OptionsScreen.class);
+        if (Services.PLATFORM.isModLoaded("packmenu")) {
+            try {
+                Constants.ALLOWED_SCREEN_CLASSES.add(Class.forName("dev.shadowsoffire.packmenu.ExtendedMenuScreen"));
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
 
         Constants.ALLOWED_LINKS.put("ko-fi", "modders_piggy_bank.link.ko-fi");
         Constants.ALLOWED_LINKS.put("github-sponsor", "modders_piggy_bank.link.github-sponsor");

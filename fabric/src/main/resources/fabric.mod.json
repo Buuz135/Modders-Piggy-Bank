@@ -13,9 +13,9 @@
     },
     "license": "${license}",
     "icon": "${mod_id}.png",
-    "environment": "*",
+    "environment": "client",
     "entrypoints": {
-        "main": [
+        "client": [
             "com.buuz135.modderspiggybank.FabricModdersPiggyBankMod"
         ]
     },
@@ -28,9 +28,5 @@
         "fabric-api": "*",
         "minecraft": ">=${minecraft_version}",
         "java": ">=${java_version}"
-    },
-    "suggests": {
-        "another-mod": "*"
     }
 }
-  
