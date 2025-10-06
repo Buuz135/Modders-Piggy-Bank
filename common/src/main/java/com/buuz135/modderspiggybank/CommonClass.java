@@ -38,12 +38,12 @@ public class CommonClass {
         Constants.ALLOWED_SCREEN_CLASSES.add("OptionsScreen");
         Constants.ALLOWED_SCREEN_CLASSES.add("ExtendedMenuScreen");
 
-        Constants.ALLOWED_LINKS.put("ko-fi", "Ko-fi");
-        Constants.ALLOWED_LINKS.put("github-sponsor", "Github Sponsor");
-        Constants.ALLOWED_LINKS.put("patreon", "Patreon");
-        Constants.ALLOWED_LINKS.put("buymeacoffee", "Buy Me a Coffee");
-        Constants.ALLOWED_LINKS.put("paypal", "Paypal");
-        Constants.ALLOWED_LINKS.put("custom", "Custom");
+        Constants.ALLOWED_LINKS.put("ko-fi", "modders_piggy_bank.link.ko-fi");
+        Constants.ALLOWED_LINKS.put("github-sponsor", "modders_piggy_bank.link.github-sponsor");
+        Constants.ALLOWED_LINKS.put("patreon", "modders_piggy_bank.link.patreon");
+        Constants.ALLOWED_LINKS.put("buymeacoffee", "modders_piggy_bank.link.buymeacoffee");
+        Constants.ALLOWED_LINKS.put("paypal", "modders_piggy_bank.link.paypal");
+        Constants.ALLOWED_LINKS.put("custom", "modders_piggy_bank.link.custom");
     }
 
     public static AuthorPiggyBank getPiggyBankOrDefault(String authorName) {
