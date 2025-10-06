@@ -1,18 +1,23 @@
 package com.buuz135.modderspiggybank;
 
-
 import com.buuz135.modderspiggybank.client.PiggyBankWidget;
-import com.google.gson.JsonElement;
+import com.buuz135.modderspiggybank.platform.Services;
 import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
+import net.minecraft.Util;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +27,7 @@ public class CommonClass {
     public static HashMap<String, AuthorPiggyBank> PIGGY_BANKS = new HashMap<>();
     public static HashMap<String, AuthorInformation> AUTHOR_INFORMATION = new HashMap<>();
     public static List<AuthorInformation> INFORMATION = new ArrayList<>();
-
+    private static final Logger LOGGER = LoggerFactory.getLogger("Modder's Piggy Bank");
 
     public static void init(HashMap<String, AuthorInformation> authors) {
         AUTHOR_INFORMATION = authors;
@@ -41,7 +46,7 @@ public class CommonClass {
         Constants.ALLOWED_LINKS.put("custom", "Custom");
     }
 
-    public static AuthorPiggyBank getPiggyBankOrDefault(String authorName){
+    public static AuthorPiggyBank getPiggyBankOrDefault(String authorName) {
         if (PIGGY_BANKS.containsKey(authorName)) {
             return PIGGY_BANKS.get(authorName);
         }
@@ -65,61 +70,40 @@ public class CommonClass {
         return new PiggyBankWidget( 2,3, selected, piggy, alternateMods);
     }
 
-    private static void loadMinified(){
-        new Thread(() -> {
-            try {
-                var urlContents = readUrl(new URL(Constants.MINIFIED_URL));
-                System.out.println(urlContents);
-                var parsed = new JsonParser().parse(urlContents);
-                for (JsonElement jsonElement : parsed.getAsJsonArray()) {
-                    var object = jsonElement.getAsJsonObject();
-                    var author = object.get("author").getAsString();
-                    if (!AUTHOR_INFORMATION.containsKey(author)) continue;
-                    var primary_color = 0x55FFFF;
-                    if (object.has("primary_color")) {
-                        primary_color = Integer.decode(object.get("primary_color").getAsString());
-                    }
-                    var secondary_color = 0x55FFFF;
-                    if (object.has("secondary_color")) {
-                        secondary_color = Integer.decode(object.get("secondary_color").getAsString());
-                    }
-                    var alternate_attribution = new ArrayList<String>();
-                    if (object.has("alternate_attribution")) {
-                        for (JsonElement alternateAttribution : object.getAsJsonArray("alternate_attribution")) {
-                            alternate_attribution.add(alternateAttribution.getAsString());
-                        }
-                    }
-                    var links = new ArrayList<AuthorPiggyBank.Link>();
-                    object.get("links").getAsJsonArray().forEach(link -> {
-                       links.add(new AuthorPiggyBank.Link(link.getAsJsonObject().get("type").getAsString(), link.getAsJsonObject().get("url").getAsString()));
-                    });
-
-                    PIGGY_BANKS.put(author, new AuthorPiggyBank(author, primary_color, secondary_color, alternate_attribution, links));
+    private static void loadMinified() {
+        //noinspection resource
+        var httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL)
+            .executor(Util.nonCriticalIoPool()).build();
+        httpClient.sendAsync(HttpRequest.newBuilder().GET()
+                    .header("user-agent", "Modder's Piggy Bank")
+                    .uri(URI.create(Constants.MINIFIED_URL)).build(),
+                HttpResponse.BodyHandlers.ofInputStream())
+            .thenApply(response -> {
+                if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    throw new RuntimeException("Erroneous response with code " + response.statusCode());
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        }).start();
-    }
-
-    private static String readUrl(URL url) throws IOException {
-        BufferedReader reader = null;
-        try {
-            HttpURLConnection httpURLConnection =  (HttpURLConnection) url.openConnection();
-            httpURLConnection.setInstanceFollowRedirects(true);
-            httpURLConnection.setUseCaches(false);
-            reader = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-            StringBuffer buffer = new StringBuffer();
-            int read;
-            char[] chars = new char[1024];
-            while ((read = reader.read(chars)) != -1)
-                buffer.append(chars, 0, read);
-
-            return buffer.toString();
-        } finally {
-            if (reader != null)
-                reader.close();
-        }
+                return response.body();
+            })
+            .thenAccept(body -> {
+                try (var reader = new BufferedReader(new InputStreamReader(body))) {
+                    AuthorPiggyBank.CODEC.codec().listOf()
+                        .decode(JsonOps.INSTANCE, JsonParser.parseReader(reader))
+                        .result().ifPresent(pair -> {
+                            var list = pair.getFirst();
+                            PIGGY_BANKS.clear();
+                            list.forEach(author -> {
+                                if (AUTHOR_INFORMATION.containsKey(author.author())) {
+                                    PIGGY_BANKS.put(author.author(), author);
+                                }
+                            });
+                            LOGGER.info("Found piggy banks of {} author(s) with mods in this pack!", PIGGY_BANKS.size());
+                        });
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }).exceptionally(t -> {
+                LOGGER.error("Failed to load data for Modder's Piggy Bank!", t);
+                return null;
+            }).thenRun(httpClient::close);
     }
 }
